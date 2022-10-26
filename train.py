@@ -1,8 +1,9 @@
 import argparse
 import logging
 import sys
+import random
 from pathlib import Path
-
+import glob
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -10,15 +11,14 @@ import wandb
 from torch import optim
 from torch.utils.data import DataLoader, random_split
 from tqdm import tqdm
-
+from segmentation_models import get_preprocessing
 from utils.data_loading import BasicDataset, CarvanaDataset
+from utils import custom_data_generator as custom_data_generator
 from utils.dice_score import dice_loss
 from evaluate import evaluate
 from unet import UNet
 
-dir_img = Path('./data/imgs/')
-dir_mask = Path('./data/masks/')
-dir_checkpoint = Path('./checkpoints/')
+data_sources = "dataset/" # 데이터 경로
 
 
 def train_net(net,
@@ -29,8 +29,35 @@ def train_net(net,
               val_percent: float = 0.1,
               save_checkpoint: bool = True,
               img_scale: float = 0.5,
-              amp: bool = False):
+              amp: bool = False,
+              one_hot_label: bool = False,
+              data_aug: bool = True):
     # 1. Create dataset
+    # 학습 데이터 리스트
+    train_images1_list = glob.glob("%strain/input1/*.png" % data_sources)
+    train_images2_list = glob.glob("%strain/input2/*.png" % data_sources)
+    train_labels_list = glob.glob("%strain/mask/*.png" % data_sources)
+    # 평가 데이터 리스트
+    val_images1_list = glob.glob("%sval/input1/*.png" % data_sources)
+    val_images2_list = glob.glob("%sval/input2/*.png" % data_sources)
+    val_labels_list = glob.glob("%sval/mask/*.png" % data_sources)
+
+    z = list(zip(train_images1_list, train_images2_list, train_labels_list))
+    random.shuffle(z)
+    train_images1_list, train_images2_list, train_labels_list = (zip(*z))
+
+    BACKBONE = 'vgg19'
+    preprocess_input = get_preprocessing(BACKBONE)
+
+    train_generator = custom_data_generator.image_generator(
+        train_images1_list, train_images2_list, train_labels_list, batch_size, one_hot_label, data_aug, True)
+    val_generator = custom_data_generator.image_generator(
+        val_images1_list, val_images2_list, val_labels_list, batch_size, one_hot_label, False)
+
+    # 학습 및 평가 데이터 수 출력
+    print("\n\nTraining samples = %s" % (len(train_labels_list)))
+    print("Validation samples = %s\n\n" % (len(val_labels_list)))
+
     try:
         dataset = CarvanaDataset(dir_img, dir_mask, img_scale)
     except (AssertionError, RuntimeError):
