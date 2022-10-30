@@ -2,7 +2,7 @@ import torch
 from torch import Tensor
 
 
-def dice_coeff(input: Tensor, target: Tensor, reduce_batch_first: bool = False, epsilon=1e-6):
+def iou(input: Tensor, target: Tensor, reduce_batch_first: bool = False, epsilon=1e-6):
     # Average of Dice coefficient for all batches, or for a single mask
     assert input.size() == target.size()
     if input.dim() == 2 and reduce_batch_first:
@@ -14,13 +14,13 @@ def dice_coeff(input: Tensor, target: Tensor, reduce_batch_first: bool = False, 
         if sets_sum.item() == 0:
             sets_sum = 2 * inter
 
-        return (2 * inter + epsilon) / (sets_sum + epsilon)
+        return (inter + epsilon) / (sets_sum + epsilon - inter)
     else:
         # compute and average metric for each batch element
-        dice = 0
+        iou_s = 0
         for i in range(input.shape[0]):
-            dice += dice_coeff(input[i, ...], target[i, ...])
-        return dice / input.shape[0]
+            iou_s += iou(input[i, ...], target[i, ...])
+        return iou_s / input.shape[0]
 
 
 def multiclass_dice_coeff(input: Tensor, target: Tensor, reduce_batch_first: bool = False, epsilon=1e-6):
