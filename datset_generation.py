@@ -15,7 +15,7 @@ def read_json_file(json_path):
 
 """Read json & image files"""
 # <change the root path>
-root_dir = "dataset/"
+root_dir = "../dataset/"
 
 # <set the path to json and image files>
 json_file_path = root_dir + "json/*.json"
