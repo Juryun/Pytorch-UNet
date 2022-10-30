@@ -129,7 +129,7 @@ def image_generator(input1, input2, masks, batch_size=8, one_hot_label=False, da
         batch_input2 = []
         batch_output = []
 
-        for _ in range(batch_size):
+        for _ in range(len(input1)):
 
             input1_path = next(input1_zipped)[0]
             input2_path = next(input2_zipped)[0]
@@ -182,4 +182,4 @@ def image_generator(input1, input2, masks, batch_size=8, one_hot_label=False, da
         batch_x2 = np.array(batch_input2)
         batch_y = np.array(batch_output)
 
-        yield(batch_x, batch_y)
+        return batch_x, batch_y
